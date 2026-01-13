@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>China’s Global Aid and Development Finance (ODA & OOF), 2000–2021</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+
+<body>
+<center><h2>Where Does China Invest? Global Aid and Official Finance by Country</h2></center>
+  
+
+  <!-- Controls -->
+  <div id="controls">
+    <button id="odaBtn" class="active">ODA</button>
+    <button id="oofBtn">OOF</button>
+  </div>
+
+  <!-- DASHBOARD CONTAINER -->
+  <div id="dashboard">
+    
+
+    <!-- LEFT: MAP -->
+    <div id="map-panel">
+      <h3>China’s Global Aid and Development Finance (ODA & OOF), 2000–2021</h3>
+      <svg id="map" width="820" height="600"></svg>
+      <div id="tooltip" class="tooltip"></div>
+    </div>
+
+    <div id="side-panel">
+      <h3>Loan Type Summary </h3>
+      <svg id="sideChart" width="800" height="500"></svg>
+    </div>
+
+  </div>
+
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="js/script.js"></script>
+
+
+</body>
+</html>
