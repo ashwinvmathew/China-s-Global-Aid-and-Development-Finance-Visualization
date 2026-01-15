@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    body { font-family: sans-serif; margin: 0; background: #fff; overflow: hidden; height: 100vh; width: 100vw; }
+    #controls { display: none; }
+    
+    #map-panel { width: 100%; height: 100%; position: relative; }
+    
+    .tooltip { position: absolute; background: rgba(0,0,0,0.8); color: white; padding: 5px; border-radius: 4px; pointer-events: none; opacity: 0; font-size: 12px; }
+    .legend text { font-size: 10px; fill: #333; }
+    .loading { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 16px; color: #666; }
+    
+    svg { display: block; width: 100%; height: 100%; }
+  </style>
+</head>
+<body>
+
+  <div id="map-panel">
+    <div class="loading">Loading Map...</div>
+    <svg id="map"></svg>
+    <div id="tooltip" class="tooltip"></div>
+  </div>
+
+<script>
+    const svg = d3.select("#map");
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    const tooltip = d3.select("#tooltip");
+
+    // Color Interpolator (Blue-Green)
+    const interpolator = d3.interpolateYlGnBu;
+    const colorScale = d3.scaleSequential(interpolator);
+
+    let preCalcMap = {}; 
+    let globalUpdate = null; 
+
+    // --- SETUP LEGEND ---
+    const legendWidth = 200;
+    const legendHeight = 10;
+    
+    // 1. Create Gradient Definition
+    const defs = svg.append("defs");
+    const linearGradient = defs.append("linearGradient")
+        .attr("id", "legend-gradient");
+    
+    // Create the color steps (0% to 100%)
+    linearGradient.selectAll("stop")
+        .data(d3.ticks(0, 1, 10)) // 10 steps
+        .join("stop")
+        .attr("offset", d => d * 100 + "%")
+        .attr("stop-color", d => interpolator(d));
+
+    // 2. Create Legend Group (Bottom Left)
+    const legendGroup = svg.append("g")
+        .attr("class", "legend")
+        .attr("transform", `translate(50, ${height - 60})`);
+
+    // 3. Draw the Color Bar Rectangle
+    legendGroup.append("rect")
+        .attr("width", legendWidth)
+        .attr("height", legendHeight)
+        .style("fill", "url(#legend-gradient)");
+
+    Promise.all([
+      d3.json("data/world.geojson"),
+      d3.csv("data/aiddata.csv") 
+    ]).then(([world, data]) => {
+
+      // Fit Map to Screen
+      const projection = d3.geoNaturalEarth1().fitSize([width, height], world);
+      const path = d3.geoPath().projection(projection);
+
+      // Pre-calculate Data
+      const odaCounts = d3.rollups(data.filter(d => d["Flow Type"] === "ODA"), v => v.length, d => d["Recipient ISO-3"]?.trim().toUpperCase());
+      const oofCounts = d3.rollups(data.filter(d => d["Flow Type"] === "OOF"), v => v.length, d => d["Recipient ISO-3"]?.trim().toUpperCase());
+      
+      preCalcMap = { "ODA": new Map(odaCounts), "OOF": new Map(oofCounts) };
+      
+      d3.select(".loading").remove();
+
+      // Draw Countries
+      svg.append("g").selectAll("path")
+        .data(world.features)
+        .join("path")
+        .attr("class", "country")
+        .attr("d", path)
+        .attr("fill", "#eee")
+        .attr("stroke", "#fff")
+        .attr("stroke-width", 0.5)
+        .on("mouseover", function(event, d) {
+            const iso = d.properties["ISO3166-1-Alpha-3"]?.trim().toUpperCase();
+            if(!iso) return;
+            tooltip.style("opacity", 1).html(d.properties.name); 
+        })
+        .on("mousemove", (e) => tooltip.style("left", (e.pageX+10)+"px").style("top", (e.pageY-20)+"px"))
+        .on("mouseout", () => tooltip.style("opacity", 0));
+
+      // Update Function
+      function update(flowType) {
+        const counts = preCalcMap[flowType];
+        if(!counts) return;
+
+        const maxVal = d3.max(Array.from(counts.values())) || 1;
+        colorScale.domain([0, maxVal]);
+
+        // --- UPDATE LEGEND TEXT ---
+        // Clear old axis
+        legendGroup.selectAll(".axis").remove();
+        legendGroup.selectAll(".legend-title").remove();
+
+        // Add Title
+        legendGroup.append("text")
+            .attr("class", "legend-title")
+            .attr("x", 0)
+            .attr("y", -5)
+            .style("font-weight", "bold")
+            .text(`${flowType} Projects (Count)`);
+
+        // Add Scale Axis
+        const legendScale = d3.scaleLinear()
+            .domain([0, maxVal])
+            .range([0, legendWidth]);
+
+        const legendAxis = d3.axisBottom(legendScale)
+            .ticks(5)
+            .tickSize(5);
+
+        legendGroup.append("g")
+            .attr("class", "axis")
+            .attr("transform", `translate(0, ${legendHeight})`)
+            .call(legendAxis);
+
+        // Update Map Colors
+        svg.selectAll(".country")
+           .transition().duration(500)
+           .attr("fill", d => {
+             const iso = d.properties["ISO3166-1-Alpha-3"]?.trim().toUpperCase();
+             const val = counts.get(iso);
+             return val ? colorScale(val) : "#eee";
+           });
+      }
+
+      globalUpdate = update;
+      update("ODA");
+
+    }).catch(err => { console.error(err); d3.select(".loading").text("Error loading data."); });
+
+    window.setFlowType = function(type) {
+        const upperType = type.toUpperCase();
+        if(globalUpdate) globalUpdate(upperType);
+    };
+
+    window.addEventListener("resize", () => location.reload()); 
+</script>
+</body>
+</html>

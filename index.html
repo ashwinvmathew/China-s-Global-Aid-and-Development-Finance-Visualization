@@ -1,43 +1,62 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>China’s Global Aid and Development Finance (ODA & OOF), 2000–2021</title>
-  <link rel="stylesheet" href="style.css">
-  <script src="https://d3js.org/d3.v7.min.js"></script>
+    <meta charset="UTF-8">
+    <title>Aid Data Dashboard</title>
+    <style>
+        body { margin: 0; padding: 0; background: #f4f6f8; font-family: sans-serif; height: 100vh; display: flex; flex-direction: column; }
+        
+        .header { background: white; padding: 15px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); z-index: 10; }
+        .header h1 { margin: 0 0 10px 0; font-size: 18px; color: #333; }
+
+        .btn-group button {
+            padding: 10px 25px; margin: 0 5px; cursor: pointer; font-weight: bold;
+            background: white; border: 2px solid #ccc; border-radius: 5px;
+        }
+        
+        /* ODA = Red, OOF = Orange */
+        .active-oda { background: #d62728 !important; color: white !important; border-color: #d62728 !important; }
+        .active-oof { background: #ff7f0e !important; color: white !important; border-color: #ff7f0e !important; }
+
+        .container { display: flex; flex: 1; padding: 20px; gap: 20px; overflow: hidden; }
+        .frame-wrapper { flex: 1; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); display: flex; flex-direction: column; overflow: hidden; }
+        .frame-wrapper h3 { text-align: center; margin: 0; color: #555; font-size: 14px; background: #fafafa; padding: 10px; border-bottom: 1px solid #eee; }
+        iframe { flex: 1; border: none; width: 100%; height: 100%; }
+    </style>
 </head>
-
 <body>
-<center><h2>Where Does China Invest? Global Aid and Official Finance by Country</h2></center>
-  
 
-  <!-- Controls -->
-  <div id="controls">
-    <button id="odaBtn" class="active">ODA</button>
-    <button id="oofBtn">OOF</button>
-  </div>
-
-  <!-- DASHBOARD CONTAINER -->
-  <div id="dashboard">
-    
-
-    <!-- LEFT: MAP -->
-    <div id="map-panel">
-      <h3>China’s Global Aid and Development Finance (ODA & OOF), 2000–2021</h3>
-      <svg id="map" width="820" height="600"></svg>
-      <div id="tooltip" class="tooltip"></div>
+    <div class="header">
+        <h1>Global Aid Dashboard (2000-2021)</h1>
+        <div class="btn-group">
+            <button id="main-oda" class="active-oda" onclick="updateAll('oda')">ODA (Official)</button>
+            <button id="main-oof" onclick="updateAll('oof')">OOF (Other)</button>
+        </div>
     </div>
 
-    <div id="side-panel">
-      <h3>Loan Type Summary </h3>
-      <svg id="sideChart" width="800" height="500"></svg>
+    <div class="container">
+        <div class="frame-wrapper">
+            <h3>Geographic Distribution</h3>
+            <iframe id="map-frame" src="mapchart.html"></iframe>
+        </div>
+
+        <div class="frame-wrapper">
+            <h3>Sector Distribution</h3>
+            <iframe id="bar-frame" src="barchart.html"></iframe>
+        </div>
     </div>
 
-  </div>
+    <script>
+        function updateAll(type) {
+            // Update Buttons
+            document.querySelectorAll('button').forEach(b => b.className = '');
+            document.getElementById(`main-${type}`).classList.add(type === 'oda' ? 'active-oda' : 'active-oof');
 
-  <script src="https://d3js.org/d3.v7.min.js"></script>
-  <script src="js/script.js"></script>
-
-
+            // Update Map
+            try { document.getElementById('map-frame').contentWindow.setFlowType(type); } catch(e) {}
+            // Update Bar Chart
+            try { document.getElementById('bar-frame').contentWindow.setFlowType(type); } catch(e) {}
+        }
+    </script>
 </body>
 </html>
